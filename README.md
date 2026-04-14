@@ -14,6 +14,7 @@ This is the collection of scripts used for the **"Fecal metaproteomic profiling 
 ```samples_variation.py```: PCA analysis of protein intensities; PCoA of Jaccard distances between the samples based on presence/absence of proteins
 
 ```check_hydrophobicity.py```: calculate GRAVY scores for the protein sequences
+
 ---
 
 ## Data Availability

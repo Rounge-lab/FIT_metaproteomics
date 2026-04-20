@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 wdir='PATH_TO_YOUR_WORKING_DIRECTORY'
 
 def format_table(file,filtprot):
-    data=pd.read_excel('/'.join([wdir,f'sim_input/{file}']))
+    data=pd.read_excel('/'.join([wdir,f'input/{file}']))
     
     dcols=data.columns.tolist()
     
@@ -71,7 +71,7 @@ def find_fractions(data,samids):
 # Make a summary file with total intensity and fractions
 # =============================================================================
 
-file='combined_protein.xlsx'
+file='simulated_FragPipe_output.xlsx'
 Data,Samples=format_table(file,True)
 Summary=find_fractions(Data,Samples['SampleID'].tolist())
 
@@ -86,7 +86,7 @@ Samples['BSA_removal']=Samples['Type'].apply(lambda row: 'Spin' if row=='FIT' el
 Samples['Type']=Samples['SampleID'].apply(lambda row: 'NC' if 'N' in row else ('Stool' if 'stool' in row else 'FIT'))
 Samples.loc[Samples['SampleID']=='NC','Type']='FITbuffer'
 Samples.loc[Samples['Pid'].str.contains('P'),'BSA_removal']='Unprocessed'
-Samples.to_excel('/'.join([wdir,'results/combined_protein_summary_FITvsStool.xlsx']), index=False)
+Samples.to_excel('/'.join([wdir,'results/combined_protein_summary.xlsx']), index=False)
 
 # =============================================================================
 # Plot fraction data
@@ -100,6 +100,6 @@ ax.set(xlabel='BSA removal strategy', ylabel='Fraction of Max_LFQ intensity from
 plt.savefig(('/'.join([wdir,'results/bact_human_BSA_percentage.pdf'])))
 
 AllData_bactonly=Data.loc[Data['Protein'].str.contains('Gene')]
-AllData_bactonly.to_excel('/'.join([wdir,'results/combined_AllData_FITvsStool_bactonly.xlsx']), index=False)
+AllData_bactonly.to_excel('/'.join([wdir,'input/true_MaxLFQ_nohuman.xlsx']), index=False)
 
  

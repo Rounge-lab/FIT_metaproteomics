@@ -5,7 +5,9 @@ This is the collection of scripts used for the **"Fecal metaproteomic profiling 
 ---
 
 ## Repository Structure
-```sim_input/combined_protein.xslx```: Mock input file with simulated metaproteomic output from the FragPipe
+```input/simulated_FragPipe_output.xslx```: Mock input file with simulated metaproteomic output from the FragPipe
+
+```input/true_MaxLFQ_nohuman.xslx```: Actual anonymized MaxLFQ intensities of FIT and corresponding stool samples from anonimyzed individuals A,B and C and negative controls
 
 ```preprocess.py```: Filtering of the metaproteomics data and formatting input 
 
@@ -14,12 +16,6 @@ This is the collection of scripts used for the **"Fecal metaproteomic profiling 
 ```samples_variation.py```: PCA analysis of protein intensities; PCoA of Jaccard distances between the samples based on presence/absence of proteins
 
 ```check_hydrophobicity.py```: calculate GRAVY scores for the protein sequences
-
----
-
-## Data Availability
-
-Raw spectra are available from The Federated European Genome-phenome Archive (FEGA): accession xxxxxxxxxxxx
 
 ---
 

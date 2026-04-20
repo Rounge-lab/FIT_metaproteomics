@@ -16,8 +16,8 @@ from itertools import combinations as comb
 
 wdir='PATH_TO_YOUR_WORKDIR'
 
-Data=pd.read_excel('/'.join([wdir,'results/combined_AllData_FITvsStool_bactonly.xlsx']))
-Samples=pd.read_excel('/'.join([wdir,'results/combined_protein_summary_FITvsStool.xlsx']))
+Data=pd.read_excel('/'.join([wdir,'input/true_MaxLQ_nohuman.xlsx']))
+Samples=pd.read_excel('/'.join([wdir,'results/combined_protein_summary.xlsx']))
 dbannot=pd.read_csv('/'.join([wdir.replace('BSA_removal',''), 'database/eggnog_annot.emapper.annotations']), sep='\t',skiprows=4)
 
 # =============================================================================

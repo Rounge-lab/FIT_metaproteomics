@@ -8,7 +8,7 @@ This is the collection of scripts used for the **"Fecal metaproteomic profiling 
 
 ```input/true_MaxLFQ_nohuman.xslx```: Actual anonymized MaxLFQ intensities of FIT and corresponding stool samples from anonimyzed individuals A,B and C and negative controls
 
-```input/simulated_FragPipe_output.xslx```: Mock input file with simulated metaproteomic output from the FragPipe
+```input/simulated_FragPipe_output.xslx```: Mock input file with simulated metaproteomic output from the FragPipe used as input for the ```preprocess.py``` script
 
 ```preprocess.py```: Filtering of the metaproteomics data and formatting input 
 

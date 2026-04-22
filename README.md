@@ -6,7 +6,7 @@ This is the collection of scripts used for the **"Fecal metaproteomic profiling 
 
 ## Repository Structure
 
-```input/true_MaxLFQ_nohuman.xslx```: Actual anonymized MaxLFQ intensities of FIT and corresponding stool samples from anonimyzed individuals A,B and C and negative controls
+```input/true_MaxLFQ_nohuman.xslx```: MaxLFQ intensities of FIT and corresponding stool samples from anonimyzed individuals A,B and C and negative controls (only bacterial proteins are reported here)
 
 ```input/meta.xslx```: metadata for FIT and corresponding stool samples
 

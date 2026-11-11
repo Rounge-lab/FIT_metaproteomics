@@ -1,6 +1,6 @@
 # Metaproteomics_FIT
 
-This is the collection of scripts used for the **"Fecal metaproteomic profiling of leftover FIT samples"** by Avershina et al, 2026
+This is the collection of scripts used for the **"Fecal metaproteomics from FIT samples: a feasibility study"** by Avershina et al, 2026
 
 ---
 
@@ -14,11 +14,12 @@ This is the collection of scripts used for the **"Fecal metaproteomic profiling 
 
 ```preprocess.py```: Filtering of the metaproteomics data and formatting input 
 
-```protocol_reproducibility.py```: Finding proteins consistently recovered between stool and FIT samples and calculating their intensities
+```check_taxonomy.py```: Finding which bacterial taxa proteins were recovered from
+
+```COG_summary.py```: make a summary of proteins recovered from FIT ans stool grouped by COGs
 
 ```samples_variation.py```: PCA analysis of protein intensities; PCoA of Jaccard distances between the samples based on presence/absence of proteins
 
-```check_hydrophobicity.py```: calculate GRAVY scores for the protein sequences
 
 ---
 

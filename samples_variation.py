@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Fri Feb  6 11:43:33 2026
 
 PCA analysis and Jaccard distance/PCoA between samples
 
-@author: ekateria
 """
 import pandas as pd
 import seaborn as sb

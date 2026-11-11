@@ -88,18 +88,20 @@ Samples.loc[Samples['SampleID']=='NC','Type']='FITbuffer'
 Samples.loc[Samples['Pid'].str.contains('P'),'BSA_removal']='Unprocessed'
 Samples.to_excel('/'.join([wdir,'results/combined_protein_summary.xlsx']), index=False)
 
+AllData_bactonly=Data.loc[Data['Protein'].str.contains('Gene')]
+AllData_bactonly.to_excel('/'.join([wdir,'input/true_MaxLFQ_nohuman.xlsx']), index=False)
+
 # =============================================================================
 # Plot fraction data
 # =============================================================================
-order=['FITbuffer','Unprocessed','Spin','Stool_noBSA','NC']
-ax=sb.boxplot(Samples.loc[Samples['Type']!='NC'], x='BSA_removal',y='Percentage', hue='ProteinType', 
+order=['FITbuffer','Unprocessed','Spin','Stool_noBSA']
+ax=sb.boxplot(Samples, x='BSA_removal',y='Percentage', hue='ProteinType', 
            order=order, palette=['#0097b2','#cca300','#cc4e00'],
            hue_order=['bact','human','BSA'], legend=False)
 ax.set(xlabel='BSA removal strategy', ylabel='Fraction of Max_LFQ intensity from proteins,%')
 
 plt.savefig(('/'.join([wdir,'results/bact_human_BSA_percentage.pdf'])))
 
-AllData_bactonly=Data.loc[Data['Protein'].str.contains('Gene')]
-AllData_bactonly.to_excel('/'.join([wdir,'input/true_MaxLFQ_nohuman.xlsx']), index=False)
+
 
  

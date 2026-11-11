@@ -13,30 +13,25 @@ import scanpy as sc
 import anndata as ad
 import numpy as np
 import matplotlib.pyplot as plt
-from skbio.stats.distance import DistanceMatrix, permanova
+from skbio.stats.distance import DistanceMatrix
 from skbio.stats.ordination import pcoa
 from scipy.spatial.distance import pdist, squareform
-from statsmodels.multivariate.manova import MANOVA
-from statsmodels.stats.multitest import multipletests
-from scipy.stats import mannwhitneyu, kruskal
- 
+from itertools import combinations as comb
+from statannotations.Annotator import Annotator as ann 
 
 wdir='PATH_TO_YOUR_WOKING_DIRECTORY'
 
-Data=pd.read_excel('/'.join([wdir,'results/combined_AllData_FITvsStool_bactonly.xlsx']))
-Samples=pd.read_excel('/'.join([wdir,'results/combined_protein_summary_FITvsStool.xlsx']))
-annot=pd.read_csv('/'.join([wdir.removesuffix('BSA_removal'),'database/eggnog_annot.emapper.annotations']),sep='\t',skiprows=4)
+Data=pd.read_excel(f'{wdir}/input/true_MaxLFQ_nohuman.xlsx')
+Samples=pd.read_excel(f'{wdir}/results/combined_protein_summary.xlsx')
+meta=pd.read_excel(f'{wdir}/input/meta.xlsx')
+annot=pd.read_csv(f'{wdir}/database/eggnog_annot.emapper.annotations',sep='\t',skiprows=4)
 annot=annot.set_index('#query')
 
 # =============================================================================
 # Format datasets
 # =============================================================================
 
-meta=Samples.loc[Samples['BSA_removal'].isin(['Stool_noBSA', 'Spin'])]
-meta=meta[['SampleID','Type','Pid']].drop_duplicates().set_index('SampleID')
-meta.to_csv('/'.join([wdir,'results/meta_FITvsStool.csv']), index=True)
-
-cols=meta.index.tolist()
+cols=meta['SampleID']
 cols.append('Protein')
 
 DataNorm=Data[cols].set_index('Protein').T
@@ -104,112 +99,6 @@ fig.set(xlabel=f'PC1 ({vr[0]:.1f}%)', ylabel=f'PC2 ({vr[1]:.1f}%)')
 
 plt.savefig('/'.join([wdir,'results/PCA_FITvsStool.pdf']))
 
-#Run Manova analysis for PCA
-#add info on replicates and read in the table
-PCs=pd.read_csv('/'.join([wdir,'results/PCA_FITvsStool_replicatesadded.csv']),sep=';')
-
-group_cols = ["Type", "Pid", "Replicate"]  
-
-for g in group_cols:
-    manova_df = PCs[[g, "PC1", "PC2"]].dropna()
-    maov = MANOVA.from_formula(f"PC1 + PC2 ~ {g}", data=manova_df)
-    print(f'Testing for {g}:\n')
-    print(maov.mv_test())
-    print('\n')
-
-# =============================================================================
-# Find which PCs give individually significant differences between sample types
-# and what are their loadings
-# =============================================================================
-
-def test_by_group(data, group_col):
-    
-    pc_cols = [c for c in data.columns if c.startswith("PC")]
-    groups = data[group_col].unique()
-    
-    results = []
-
-    if len(groups)==2:
-        g1 = data[data[group_col] == groups[0]]
-        g2 = data[data[group_col] == groups[1]]
- 
-        for pc in pc_cols:
-            stat, pval = mannwhitneyu(g1[pc].dropna(), g2[pc].dropna(), alternative="two-sided")
-            results.append({"PC": pc, "test": 'Mann-Whitney', "Stat": stat, "p_value": pval, "Group": group_col})
-    
-    elif len(groups)>2:
-        for pc in pc_cols:
-            samples = [data[data[group_col] == g][pc].dropna()for g in groups]
-            
-            # keep only non-empty groups
-            samples = [s for s in samples if len(s) > 0]
-            
-            if len(samples) > 1:
-                stat, pval = kruskal(*samples)
-            else:
-                stat, pval = None, None
-            
-            results.append({"PC": pc,"test": "Kruskal-Wallis","Stat": stat,"p_value": pval,"Group": group_col})
-    
-    results_df = pd.DataFrame(results)
-    
-    # FDR correction across all PCs with valid p-values
-    valid = results_df["p_value"].notna()
-    if valid.any():
-        results_df.loc[valid, "p_fdr"] = multipletests(results_df.loc[valid, "p_value"],method="fdr_bh")[1]
-    else:
-        results_df["p_fdr"] = pd.NA
-    
-    return results_df
-
-SignPCA = pd.DataFrame()
-
-for group in group_cols:
-    
-    # Mann-Whitney test
-    mw = test_by_group(PCs, group_col=group)
-    SignPCA = pd.concat([SignPCA, mw], ignore_index=True)
-
-variance=pd.DataFrame(vr,index=[f'PC{v}' for v in range(1,len(vr)+1,1)], columns=['Variance']).reset_index().rename(columns={'index':'PC'})
-SignPCA=SignPCA.merge(variance, on='PC')
-
-SignPCA.to_csv('/'.join([wdir,'results/Significance_PCA_PCs.csv']), index=False)
-
-#Check their loadings     
-loadings = pd.DataFrame(adata.varm["PCs"], index=adata.var_names, columns=[f"PC{i+1}" for i in range(variance.shape[0])])
-
-def plot_interest(pc_int,numprot,loadings=loadings, annot=annot):
-    subset=loadings[[pc_int]]
-    subset['abs']=subset[pc_int].abs()
-    subset=subset.merge(annot[['COG_category','Description']],left_index=True,right_index=True, how='left').reset_index()
-    subset['COG_category']=subset['COG_category'].str.replace('-','unclass')
-    subset['COG_category']=subset['COG_category'].fillna('unclass')
-
-    subset['label']=subset.apply(lambda row: f'{row.COG_category};{row.Protein}', axis=1)
-    subset=subset.set_index('label')
-    subset=subset.sort_values(by='abs',ascending=False).head(numprot).sort_values(by=['COG_category',pc_int],ascending=False)
-
-    
-    s=subset[pc_int]
-    colors = ["#D85A30" if v < 0 else "#378ADD" for v in s]
-    fig, ax = plt.subplots(figsize=(numprot * 0.35 + 1,6))
-    ax.vlines(s.index, 0, s.values, colors=colors, linewidth=2)
-    ax.scatter(s.index, s.values,  color=colors, zorder=3, s=30)
-    ax.axhline(0, color="black", linewidth=0.8, linestyle="--")
-    ax.set_xlabel(f"{pc_int} loading")
-    ax.set_title(f"Top {numprot} protein loadings in {pc_int}")
-    ax.set_xticklabels(ax.get_xticklabels(),rotation=90)
-    sb.despine()
-    plt.tight_layout()
-    plt.show()
-    
-    return subset[[pc_int,'COG_category']]
-
-pc3top=plot_interest('PC3',100)
-pc3top.to_csv('/'.join([wdir,'results/PCA_FITvsStool_PC3_loadings_top100.csv']), index=True)
-
-pc3top['COG_category'].value_counts()
-
 # =============================================================================
 # Calculate Jaccard index and run PCoA
 # =============================================================================
@@ -243,26 +132,43 @@ Jaccard=pd.DataFrame(Jac, columns=Prev.index.tolist(), index=Prev.index.tolist()
 Jaccard.to_csv('/'.join([wdir,'results/Jaccard_FITvsStool.csv']), index=True)
 
 # =============================================================================
-# Run PERMANOVA analysis
+# Find an average Jacacrd distance between ID to ID; types and replicates
 # =============================================================================
 
-group_cols = ["Type", "Pid"]  
-
-#make sure indexes are in the same order
-meta=meta.loc[DataNorm.index.tolist()]
-
-Permanova=pd.DataFrame()
-for g in group_cols:
-    permanova_res = permanova(distance_matrix=dm, grouping=meta[g],permutations=999)
+Jac_pairs=pd.DataFrame()
+meta=meta.reset_index()
+#Find Jaccard pairs within each ID
+allcomp=list(comb(meta['SampleID'].tolist(),2))
+for a in allcomp:
+    if meta.loc[meta['SampleID']==a[0],'Pid'].item()==meta.loc[meta['SampleID']==a[1],'Pid'].item():
+        idcat='replicates'
+    else:
+        idcat='ID to ID'
+    jac={'S1':[a[0]],'S2':[a[1]],'jac':[Jaccard.loc[a[0],a[1]]], 
+         'Type1':[meta.loc[meta['SampleID']==a[0],'Type'].item()],'Type2':[meta.loc[meta['SampleID']==a[1],'Type'].item()],
+         'IDcat':[idcat]}
+    Jac_pairs=pd.concat([Jac_pairs, pd.DataFrame(jac)])
     
-    F=permanova_res["test statistic"]
-    between=permanova_res["number of groups"] - 1
-    within=permanova_res["sample size"] - permanova_res["number of groups"]
+Jac_pairs['Typecat']=Jac_pairs['Type1']+'_vs_'+Jac_pairs['Type2']
+Jac_pairs['Typecat']=Jac_pairs['Typecat'].apply(lambda row: 'FIT_vs_Stool' if row=='Stool_vs_FIT' else row)
 
-    # Compute R²
-    R2=(F*between)/(F*between+within)
-    
-    perm=pd.DataFrame({'Group':[g],'PseudoF':[F], 'R2':[R2], 'Pval':[permanova_res["p-value"]]})
-    Permanova=pd.concat([Permanova, perm])
-    
-Permanova.to_csv('/'.join([wdir,'results/Permanova_Jaccard_FITvsStool.csv']), index=False)
+palette={'replicates':'#9697b1','ID to ID':'#acc0c3'}
+x_order=['FIT_vs_FIT','Stool_vs_Stool','FIT_vs_Stool']
+hue_order=['replicates','ID to ID']
+
+pairs = []
+
+for p in x_order:
+    for c1, c2 in comb(hue_order, 2):
+        pairs.append(((p, c1), (p, c2)))
+
+print(pairs)
+
+ax=sb.boxplot(Jac_pairs, y='Typecat',x='jac', hue='IDcat',palette=palette,hue_order=hue_order,order=x_order,legend=False)
+
+annj=ann(ax,pairs,data=Jac_pairs,y='Typecat',x='jac', hue='IDcat', order=x_order, hue_order=hue_order,orient='h')
+annj.configure(test='Mann-Whitney',text_format='star',loc='inside',hide_non_significant=True)
+annj.apply_and_annotate()   
+ax.set(xlabel='Jaccard distance',ylabel='')
+ax.set_yticklabels(['FIT','Stool','FIT vs Stool'])
+plt.savefig(f'{wdir}/results/Jaccard_by_Type_and_replicates.pdf')
